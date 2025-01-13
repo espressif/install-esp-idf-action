@@ -1,0 +1,27 @@
+{
+  "name": "esp-idf-install-action",
+  "version": "1.0.0",
+  "description": "GitHub Action to install ESP-IDF framework",
+  "main": "index.js",
+  "scripts": {
+    "lint": "eslint *.js",
+    "format": "prettier --write *.js"
+  },
+  "keywords": [
+    "actions",
+    "esp-idf",
+    "setup",
+    "eim"
+  ],
+  "author": "Petr Gadorek (petr.gadorek@espressif.com)",
+  "license": "MIT",
+  "dependencies": {
+    "@actions/core": "^1.10.0",
+    "@actions/exec": "^1.1.1",
+    "@actions/tool-cache": "^2.0.1"
+  },
+  "devDependencies": {
+    "eslint": "^8.0.0",
+    "prettier": "^2.8.0"
+  }
+}

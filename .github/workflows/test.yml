@@ -1,0 +1,25 @@
+name: Test ESP-IDF Installation
+
+on:
+  push:
+    branches: [v1]
+  pull_request:
+    branches: [v1]
+
+jobs:
+  test:
+    name: Test on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, macos-13, windows-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install ESP-IDF
+        uses: ./
+
+      - name: Verify Installation
+        run: |
+          idf.py --version
