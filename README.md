@@ -1,6 +1,7 @@
 # ESP-IDF Installation Action
 
-This GitHub Action automates the installation of the ESP-IDF framework on GitHub-hosted runners. It supports Windows, macOS, and Linux platforms, allowing you to set up ESP-IDF for your CI/CD workflows.
+This GitHub Action automates the installation of the ESP-IDF framework on GitHub-hosted runners. It supports Windows, macOS (arm64 and Intel), and Linux (arm64 and x64) platforms, allowing you to set up ESP-IDF for your CI/CD workflows.
+If you just need to build the project, you can use [esp-idf-ci-action](https://github.com/espressif/esp-idf-ci-action).
 
 ## Features
 
@@ -32,18 +33,18 @@ steps:
   - name: Install ESP-IDF
     uses: espressif/esp-idf-install-action@v1
     with:
-      esp_idf_version: "v5.0"
-      esp_idf_path: "/custom/path/to/esp-idf"
-      esp_idf_tools_path: "/custom/path/to/tools"
+      version: "v5.0"
+      path: "/custom/path/to/esp-idf"
+      tools-path: "/custom/path/to/tools"
 ```
 
 ## Inputs
 
-| Input                | Description                   | Default                                          |
-| -------------------- | ----------------------------- | ------------------------------------------------ |
-| `esp_idf_version`    | Version of ESP-IDF to install | Latest released version                          |
-| `esp_idf_path`       | Installation path for ESP-IDF | `/opt/esp/idf` (POSIX) or `C:\esp\idf` (Windows) |
-| `esp_idf_tools_path` | Path for ESP-IDF tools        | `/opt/esp` (POSIX) or `C:\esp` (Windows)         |
+| Input        | Description                   | Default                                          |
+| ------------ | ----------------------------- | ------------------------------------------------ |
+| `version`    | Version of ESP-IDF to install | Latest released version                          |
+| `path`       | Installation path for ESP-IDF | `/opt/esp/idf` (POSIX) or `C:\esp\idf` (Windows) |
+| `tools-path` | Path for ESP-IDF tools        | `/opt/esp` (POSIX) or `C:\esp` (Windows)         |
 
 ## Available Commands
 
@@ -83,7 +84,7 @@ jobs:
       - name: Install ESP-IDF
         uses: espressif/esp-idf-install-action@v1
         with:
-          esp_idf_version: "v5.0"
+          version: "v5.0"
 
       - name: Build Project
         run: |
@@ -123,6 +124,70 @@ jobs:
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
+
+## Development Setup
+
+1. Clone the repository:
+
+```bash
+git clone https://github.com/your-username/esp-idf-install-action.git
+cd esp-idf-install-action
+```
+
+2. Install dependencies:
+
+```bash
+npm install
+```
+
+3. Install development tool for bundling:
+
+```bash
+npm install -g @vercel/ncc
+```
+
+4. Make your changes to the action code in `index.js`.
+
+5. Build the action:
+
+```bash
+ncc build index.js --license licenses.txt
+```
+
+This will create a single file in `dist/index.js` containing all the bundled code.
+
+6. Commit both your source changes and the built `dist` directory:
+
+```bash
+git add .
+git commit -m "your changes"
+git push origin your-branch
+```
+
+The GitHub Actions workflow will automatically test your changes on all supported platforms.
+
+### Project Structure
+
+- `action.yml` - Action metadata file
+- `index.js` - Main action source code
+- `dist/` - Compiled action code (must be committed)
+- `.github/workflows/` - Test workflows
+
+### Release Process
+
+1. Update version in `package.json` if needed
+2. Build the action:
+
+```bash
+ncc build index.js --license licenses.txt
+```
+
+3. Commit all changes including the `dist` directory
+4. Create and push a new tag:
+
+```bash
+git push origin v1
+```
 
 ## License
 

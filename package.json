@@ -2,8 +2,9 @@
   "name": "esp-idf-install-action",
   "version": "1.0.0",
   "description": "GitHub Action to install ESP-IDF framework",
-  "main": "index.js",
+  "main": "./dist/index.js",
   "scripts": {
+    "build": "ncc build index.js --license licenses.txt",
     "lint": "eslint *.js",
     "format": "prettier --write *.js"
   },
@@ -22,6 +23,7 @@
   },
   "devDependencies": {
     "eslint": "^8.0.0",
-    "prettier": "^2.8.0"
+    "prettier": "^2.8.0",
+    "@vercel/ncc": "^0.38.0"
   }
 }

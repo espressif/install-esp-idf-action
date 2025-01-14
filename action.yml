@@ -3,20 +3,20 @@ description: "Install ESP-IDF using EIM tool on GitHub-hosted runners"
 author: "Petr Gadorek (petr.gadorek@espressif.com)"
 
 inputs:
-  esp_idf_version:
+  version:
     description: "Version of ESP-IDF to install"
     required: false
     default: "latest"
-  esp_idf_path:
+  path:
     description: "Installation path for ESP-IDF"
     required: false
-  esp_idf_tools_path:
+  tools-path:
     description: "Path for ESP-IDF tools"
     required: false
 
 runs:
   using: "node20"
-  main: "index.js"
+  main: "./dist/index.js"
 
 branding:
   icon: "cpu"

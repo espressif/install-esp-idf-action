@@ -4,13 +4,60 @@ const tc = require("@actions/tool-cache");
 const os = require("os");
 const path = require("path");
 const fs = require("fs");
+const https = require("https");
+
+// Function to parse Unix-style activation script
+async function parseUnixScript(scriptPath) {
+  const content = await fs.promises.readFile(scriptPath, "utf8");
+  const commands = {};
+
+  // Parse alias definitions
+  const aliasRegex = /alias\s+([^=]+)="([^"]+)"/g;
+  let match;
+
+  while ((match = aliasRegex.exec(content)) !== null) {
+    const [_, cmd, fullPath] = match;
+    commands[cmd] = fullPath;
+  }
+
+  return commands;
+}
+
+// Function to parse Windows PowerShell script
+async function parseWindowsScript(scriptPath) {
+  const content = await fs.promises.readFile(scriptPath, "utf8");
+  const commands = {};
+
+  // Parse function definitions
+  const functionRegex = /function global:([^\s{]+)\s*{[\r\n\s]*([^}]+)}/g;
+  let match;
+
+  while ((match = functionRegex.exec(content)) !== null) {
+    const [_, functionName, functionBody] = match;
+    // Clean up the command by taking the first non-empty line
+    const command = functionBody
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0)[0];
+
+    commands[functionName] = command.replace(" @args", "");
+  }
+
+  // Special handling for Invoke-idfpy which becomes idf.py
+  if (commands["Invoke-idfpy"]) {
+    commands["idf.py"] = commands["Invoke-idfpy"];
+    delete commands["Invoke-idfpy"];
+  }
+
+  return commands;
+}
 
 async function run() {
   try {
     // Get inputs
-    const version = core.getInput("esp_idf_version");
-    let idfPath = core.getInput("esp_idf_path");
-    let toolsPath = core.getInput("esp_idf_tools_path");
+    const version = core.getInput("version");
+    let idfPath = core.getInput("path");
+    let toolsPath = core.getInput("tools-path");
 
     // Set default paths if not provided
     if (!idfPath) {
@@ -23,8 +70,11 @@ async function run() {
     // Install platform-specific dependencies
     await installDependencies(process.platform);
 
+    // Get latest EIM version from GitHub
+    const eimVersion = await getLatestEimVersion();
+    core.info(`Using EIM version: ${eimVersion}`);
+
     // Get the appropriate EIM download URL
-    const eimVersion = "v0.1.5";
     const downloadUrl = getEimDownloadUrl(
       process.platform,
       process.arch,
@@ -41,13 +91,12 @@ async function run() {
       await exec.exec("chmod", ["+x", path.join(extractedPath, "eim")]);
     }
 
-    // Prepare EIM command
+    // Prepare EIM command and execute installation
     const eimCmd = process.platform === "win32" ? "eim.exe" : "./eim";
     const eimPath = path.join(extractedPath, eimCmd);
-
-    // Prepare EIM arguments
     const args = ["-r", "true", "-n", "true", "-a", "true"];
-    if (version !== "latest") {
+    if (version !== "latest" && version.trim().length > 0) {
+      core.info(`Installing ESP-IDF version |${version}|`);
       args.push("-i", version);
     }
     args.push("-p", idfPath);
@@ -55,6 +104,7 @@ async function run() {
 
     // Run EIM
     core.info("Running EIM installation...");
+
     await exec.exec(eimPath, args);
 
     // Find and execute the appropriate activation script
@@ -68,43 +118,41 @@ async function run() {
       },
     };
 
+    // Find and parse activation script
+    let scriptPath;
+    let commands;
+
     if (process.platform === "win32") {
-      // On Windows, look for PowerShell profile
       const files = await fs.promises.readdir(idfPath);
       const versionDir = files.find((f) => /^v\d+\.\d+$/.test(f));
       if (!versionDir) {
         throw new Error("Could not find version directory in IDF path");
       }
 
-      const profilePath = path.join(
+      scriptPath = path.join(
         idfPath,
         versionDir,
         "Microsoft.PowerShell_profile.ps1"
       );
       if (
         !(await fs.promises
-          .access(profilePath)
+          .access(scriptPath)
           .then(() => true)
           .catch(() => false))
       ) {
         throw new Error("Could not find PowerShell profile script");
       }
 
-      // Execute PowerShell profile with -e parameter
+      // Parse Windows commands
+      commands = await parseWindowsScript(scriptPath);
+
+      // Execute PowerShell profile
       await exec.exec(
         "powershell",
-        [
-          "-NoProfile",
-          "-ExecutionPolicy",
-          "Bypass",
-          "-File",
-          profilePath,
-          "-e",
-        ],
+        ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", scriptPath, "-e"],
         options
       );
     } else {
-      // On Unix systems, look for activation script
       const files = await fs.promises.readdir(idfPath);
       const activationFile = files.find(
         (f) => f.startsWith("activate_") && f.endsWith(".sh")
@@ -113,9 +161,14 @@ async function run() {
         throw new Error("Could not find activation script");
       }
 
-      const activationScript = path.join(idfPath, activationFile);
-      await exec.exec("chmod", ["+x", activationScript]);
-      await exec.exec(activationScript, ["-e"], options);
+      scriptPath = path.join(idfPath, activationFile);
+      await exec.exec("chmod", ["+x", scriptPath]);
+
+      // Parse Unix commands
+      commands = await parseUnixScript(scriptPath);
+
+      // Execute activation script
+      await exec.exec(scriptPath, ["-e"], options);
     }
 
     // Parse the output and set environment variables
@@ -128,11 +181,10 @@ async function run() {
       }
     });
 
-    // Set all environment variables
+    // Set environment variables
     for (const [key, value] of Object.entries(envVars)) {
       if (key === "PATH") {
-        // For PATH, we need to add each directory
-        const newPaths = value.split(":").filter(Boolean);
+        const newPaths = value.split(path.delimiter).filter(Boolean);
         for (const newPath of newPaths) {
           core.addPath(newPath);
         }
@@ -142,30 +194,11 @@ async function run() {
       core.info(`Set ${key}`);
     }
 
-    // Create a bin directory for our wrapper scripts
+    // Create bin directory for wrapper scripts
     const binDir = path.join(toolsPath, "bin");
     await fs.promises.mkdir(binDir, { recursive: true });
 
-    // Create wrapper scripts for common commands
-    const commands =
-      process.platform === "win32"
-        ? {
-            "idf.py": `%IDF_PYTHON_ENV_PATH%\\Scripts\\python.exe %IDF_PATH%\\tools\\idf.py`,
-            "esptool.py": `%IDF_PYTHON_ENV_PATH%\\Scripts\\python.exe %IDF_PATH%\\components\\esptool_py\\esptool\\esptool.py`,
-            "espefuse.py": `%IDF_PYTHON_ENV_PATH%\\Scripts\\python.exe %IDF_PATH%\\components\\esptool_py\\esptool\\espefuse.py`,
-            "espsecure.py": `%IDF_PYTHON_ENV_PATH%\\Scripts\\python.exe %IDF_PATH%\\components\\esptool_py\\esptool\\espsecure.py`,
-            "otatool.py": `%IDF_PYTHON_ENV_PATH%\\Scripts\\python.exe %IDF_PATH%\\components\\app_update\\otatool.py`,
-            "parttool.py": `%IDF_PYTHON_ENV_PATH%\\Scripts\\python.exe %IDF_PATH%\\components\\partition_table\\parttool.py`,
-          }
-        : {
-            "idf.py": `${envVars.IDF_PYTHON_ENV_PATH}/bin/python3 ${envVars.IDF_PATH}/tools/idf.py`,
-            "esptool.py": `${envVars.IDF_PYTHON_ENV_PATH}/bin/python3 ${envVars.IDF_PATH}/components/esptool_py/esptool/esptool.py`,
-            "espefuse.py": `${envVars.IDF_PYTHON_ENV_PATH}/bin/python3 ${envVars.IDF_PATH}/components/esptool_py/esptool/espefuse.py`,
-            "espsecure.py": `${envVars.IDF_PYTHON_ENV_PATH}/bin/python3 ${envVars.IDF_PATH}/components/esptool_py/esptool/espsecure.py`,
-            "otatool.py": `${envVars.IDF_PYTHON_ENV_PATH}/bin/python3 ${envVars.IDF_PATH}/components/app_update/otatool.py`,
-            "parttool.py": `${envVars.IDF_PYTHON_ENV_PATH}/bin/python3 ${envVars.IDF_PATH}/components/partition_table/parttool.py`,
-          };
-
+    // Create wrapper scripts based on parsed commands
     for (const [cmd, fullPath] of Object.entries(commands)) {
       const wrapperPath = path.join(binDir, cmd);
       if (process.platform === "win32") {
@@ -180,15 +213,58 @@ async function run() {
       }
     }
 
-    // Add our bin directory to PATH
+    // Add bin directory to PATH
     core.addPath(binDir);
-
     core.info(
       "ESP-IDF installation and environment setup completed successfully"
     );
   } catch (error) {
     core.setFailed(error.message || "An unexpected error occurred");
   }
+}
+
+// Function to fetch latest release version from GitHub API
+async function getLatestEimVersion() {
+  return new Promise((resolve, reject) => {
+    const options = {
+      hostname: "dl.espressif.com",
+      path: "/dl/eim/eim_cli_release.json",
+      headers: {
+        "User-Agent": "GitHub-Action-ESP-IDF-Setup",
+      },
+    };
+
+    const req = https.get(options, (res) => {
+      let data = "";
+
+      res.on("data", (chunk) => {
+        data += chunk;
+      });
+
+      res.on("end", () => {
+        if (res.statusCode === 200) {
+          try {
+            const release = JSON.parse(data);
+            resolve(release.tag_name);
+          } catch (error) {
+            reject(new Error("Failed to parse eim_cli_release,.json"));
+          }
+        } else {
+          reject(
+            new Error(
+              `dl.espressif.com request failed with status ${res.statusCode}`
+            )
+          );
+        }
+      });
+    });
+
+    req.on("error", (error) => {
+      reject(error);
+    });
+
+    req.end();
+  });
 }
 
 function getEimDownloadUrl(platform, arch, version) {
@@ -213,6 +289,17 @@ function getEimDownloadUrl(platform, arch, version) {
 async function installDependencies(platform) {
   switch (platform) {
     case "linux":
+      try {
+        await exec.exec("which apt-get");
+      } catch (error) {
+        core.setFailed(
+          "---------------   WARNING   ---------------\n" +
+            "This action currently supports only official GitHub-hosted Ubuntu runners. " +
+            "If you're using a self-hosted runner or a different Linux distribution, " +
+            "please ensure all required dependencies are pre-installed."
+        );
+        return;
+      }
       await exec.exec("sudo apt-get update");
       await exec.exec(
         "sudo apt-get install -y git cmake ninja-build wget flex bison gperf ccache libffi-dev libssl-dev dfu-util libusb-1.0-0 python3 python3-pip python3-setuptools python3-wheel xz-utils unzip python3-venv"
