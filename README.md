@@ -19,7 +19,7 @@ Basic usage with default settings:
 steps:
   - uses: actions/checkout@v4
   - name: Install ESP-IDF
-    uses: espressif/esp-idf-install-action@v1
+    uses: espressif/install-esp-idf-action@v1
   - name: Build your project
     run: |
       idf.py build
@@ -31,7 +31,7 @@ Advanced usage with custom configuration:
 steps:
   - uses: actions/checkout@v4
   - name: Install ESP-IDF
-    uses: espressif/esp-idf-install-action@v1
+    uses: espressif/install-esp-idf-action@v1
     with:
       version: "v5.0"
       path: "/custom/path/to/esp-idf"
@@ -82,7 +82,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install ESP-IDF
-        uses: espressif/esp-idf-install-action@v1
+        uses: espressif/install-esp-idf-action@v1
         with:
           version: "v5.0"
 
@@ -130,8 +130,8 @@ Contributions are welcome! Please feel free to submit a Pull Request. For major 
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/your-username/esp-idf-install-action.git
-cd esp-idf-install-action
+git clone https://github.com/your-username/install-esp-idf-action.git
+cd install-esp-idf-action
 ```
 
 2. Install dependencies:

@@ -1,5 +1,5 @@
 {
-  "name": "esp-idf-install-action",
+  "name": "install-esp-idf-action",
   "version": "1.0.0",
   "description": "GitHub Action to install ESP-IDF framework",
   "main": "./dist/index.js",
