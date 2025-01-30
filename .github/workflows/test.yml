@@ -18,7 +18,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install ESP-IDF
-        uses: ./
+        uses: espressif/esp-idf-install-action@v1
 
       - name: Verify Installation
         run: |
