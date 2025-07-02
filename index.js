@@ -84,17 +84,21 @@ async function run() {
     // Download and extract EIM
     core.info(`Downloading EIM from ${downloadUrl}`);
     const downloadedPath = await tc.downloadTool(downloadUrl);
-    const extractedPath = await tc.extractZip(downloadedPath);
-
-    // Make EIM executable on Unix systems
-    if (process.platform !== "win32") {
-      await exec.exec("chmod", ["+x", path.join(extractedPath, "eim")]);
+    let eimPath;
+    if (process.platform === "win32") {
+      // Windows: downloaded file is the exe directly
+      // eimPath = path.join(downloadedPath, "eim-cli-windows-x64.exe");
+      eimPath = downloadedPath + ".exe";
+      await fs.promises.rename(downloadedPath, eimPath);
+    } else {
+      // Unix: extract zip and make executable
+      const extractedPath = await tc.extractZip(downloadedPath);
+      eimPath = path.join(extractedPath, "eim");
+      await exec.exec("chmod", ["+x", eimPath]);
     }
 
     // Prepare EIM command and execute installation
-    const eimCmd = process.platform === "win32" ? "eim.exe" : "./eim";
-    const eimPath = path.join(extractedPath, eimCmd);
-    const args = ["-r", "true", "-n", "true", "-a", "true"];
+    const args = ["install", "-r", "true", "-n", "true", "-a", "true"];
     if (version !== "latest" && version.trim().length > 0) {
       core.info(`Installing ESP-IDF version |${version}|`);
       args.push("-i", version);
@@ -104,6 +108,7 @@ async function run() {
 
     // Run EIM
     core.info("Running EIM installation...");
+    core.info(`EIM command: ${eimPath} ${args.join(" ")}`);
 
     await exec.exec(eimPath, args);
 
@@ -123,16 +128,12 @@ async function run() {
     let commands;
 
     if (process.platform === "win32") {
-      const files = await fs.promises.readdir(idfPath);
-      const versionDir = files.find((f) => /^v\d+\.\d+$/.test(f));
-      if (!versionDir) {
-        throw new Error("Could not find version directory in IDF path");
-      }
+      const files = await fs.promises.readdir("C:\\Espressif\\tools");
+      const profile_file = files.find((f) => f.startsWith("Microsoft") && f.endsWith(".ps1"));
 
       scriptPath = path.join(
-        idfPath,
-        versionDir,
-        "Microsoft.PowerShell_profile.ps1"
+        "C:\\Espressif\\tools",
+        profile_file
       );
       if (
         !(await fs.promises
@@ -153,7 +154,8 @@ async function run() {
         options
       );
     } else {
-      const files = await fs.promises.readdir(idfPath);
+      let spath = process.platform === "darwin" ? "/Users/runner/.espressif/tools/" : "/home/runner/.espressif/tools/";
+      const files =  await fs.promises.readdir(spath);
       const activationFile = files.find(
         (f) => f.startsWith("activate_") && f.endsWith(".sh")
       );
@@ -161,7 +163,7 @@ async function run() {
         throw new Error("Could not find activation script");
       }
 
-      scriptPath = path.join(idfPath, activationFile);
+      scriptPath = path.join(spath, activationFile);
       await exec.exec("chmod", ["+x", scriptPath]);
 
       // Parse Unix commands
@@ -228,7 +230,7 @@ async function getLatestEimVersion() {
   return new Promise((resolve, reject) => {
     const options = {
       hostname: "dl.espressif.com",
-      path: "/dl/eim/eim_cli_release.json",
+      path: "/dl/eim/eim_unified_release.json",
       headers: {
         "User-Agent": "GitHub-Action-ESP-IDF-Setup",
       },
@@ -247,7 +249,7 @@ async function getLatestEimVersion() {
             const release = JSON.parse(data);
             resolve(release.tag_name);
           } catch (error) {
-            reject(new Error("Failed to parse eim_cli_release,.json"));
+            reject(new Error("Failed to parse eim_unified_release.json"));
           }
         } else {
           reject(
@@ -268,19 +270,19 @@ async function getLatestEimVersion() {
 }
 
 function getEimDownloadUrl(platform, arch, version) {
-  const baseUrl = "https://github.com/espressif/idf-im-cli/releases/download";
+  const baseUrl = "https://github.com/espressif/idf-im-ui/releases/download";
 
   switch (platform) {
     case "linux":
-      return `${baseUrl}/${version}/eim-${version}-linux-${
+      return `${baseUrl}/${version}/eim-cli-linux-${
         arch === "arm64" ? "arm64" : "x64"
       }.zip`;
     case "darwin":
-      return `${baseUrl}/${version}/eim-${version}-macos-${
+      return `${baseUrl}/${version}/eim-cli-macos-${
         arch === "arm64" ? "aarch64" : "x64"
       }.zip`;
     case "win32":
-      return `${baseUrl}/${version}/eim-${version}-windows-x64.zip`;
+      return `${baseUrl}/${version}/eim-cli-windows-x64.exe`;
     default:
       throw new Error(`Unsupported platform: ${platform}`);
   }
