@@ -24,6 +24,11 @@ jobs:
 
       - name: Verify Installation
         run: |
+          echo "Verifying ESP-IDF installation..."
+          echo "ESP-IDF Path: $IDF_PATH"
+          echo "ESP-IDF Tools Path: $IDF_TOOLS_PATH"
+          echo "ESP-IDF Python Environment Path: $IDF_PYTHON_ENV_PATH"
+          echo "ESP-IDF Version:"
           idf.py --version
 
   fixed-version-test:
