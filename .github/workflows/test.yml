@@ -23,3 +23,22 @@ jobs:
       - name: Verify Installation
         run: |
           idf.py --version
+
+  fixed-version-test:
+    name: Test on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, macos-13, windows-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install ESP-IDF
+        uses: ./
+        with:
+          eim-version: "v0.2.6"
+
+      - name: Verify Installation
+        run: |
+          idf.py --version

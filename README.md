@@ -45,6 +45,7 @@ steps:
 | `version`    | Version of ESP-IDF to install | Latest released version                          |
 | `path`       | Installation path for ESP-IDF | `/opt/esp/idf` (POSIX) or `C:\esp\idf` (Windows) |
 | `tools-path` | Path for ESP-IDF tools        | `/opt/esp` (POSIX) or `C:\esp` (Windows)         |
+| `eim-version` | Version of EIM to use | Latest released version |
 
 ## Available Commands
 

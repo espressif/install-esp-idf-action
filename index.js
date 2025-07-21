@@ -58,6 +58,7 @@ async function run() {
     const version = core.getInput("version");
     let idfPath = core.getInput("path");
     let toolsPath = core.getInput("tools-path");
+    const eimVersionInput = core.getInput("eim-version");
 
     // Set default paths if not provided
     if (!idfPath) {
@@ -70,8 +71,7 @@ async function run() {
     // Install platform-specific dependencies
     await installDependencies(process.platform);
 
-    // Get latest EIM version from GitHub
-    const eimVersion = await getLatestEimVersion();
+    const eimVersion = eimVersionInput || (await getLatestEimVersion());
     core.info(`Using EIM version: ${eimVersion}`);
 
     // Get the appropriate EIM download URL
