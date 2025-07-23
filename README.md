@@ -1,7 +1,7 @@
 # ESP-IDF Installation Action
 
 This GitHub Action automates the installation of the ESP-IDF framework on GitHub-hosted runners. It supports Windows, macOS (arm64 and Intel), and Linux (arm64 and x64) platforms, allowing you to set up ESP-IDF for your CI/CD workflows.
-If you just need to build the project, you can use [esp-idf-ci-action](https://github.com/espressif/esp-idf-ci-action).
+If you just need to build the project, you can use [esp-idf-ci-action](https://github.com/espressif/esp-idf-ci-action). You can also use docker based solution as suggested in the [installer documentetion](https://docs.espressif.com/projects/idf-im-ui/en/latest/headless_usage.html#docker-integration).
 
 ## Features
 
@@ -98,12 +98,12 @@ jobs:
 ### Linux
 
 - Automatically installs required packages using apt-get
-- Default installation path: `/opt/esp/idf`
+- Default installation path: `/tmp/esp/idf`
 
 ### macOS
 
 - Automatically installs required packages using Homebrew
-- Default installation path: `/opt/esp/idf`
+- Default installation path: `~/esp/idf`
 
 ### Windows
 
@@ -197,4 +197,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## Acknowledgments
 
 - [Espressif Systems](https://www.espressif.com/) for ESP-IDF
-- [cli-idf-installer](https://github.com/espressif/idf-im-cli) for the installation tools
+- [EIM](https://github.com/espressif/idf-im-ui/) for the installation tools
