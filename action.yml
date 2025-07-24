@@ -13,6 +13,9 @@ inputs:
   tools-path:
     description: "Path for ESP-IDF tools"
     required: false
+  eim-version:
+    description: "Version of EIM to use (default is latest)"
+    required: false
 
 runs:
   using: "node20"

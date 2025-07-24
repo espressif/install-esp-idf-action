@@ -30230,10 +30230,21 @@ async function run() {
     const version = core.getInput("version");
     let idfPath = core.getInput("path");
     let toolsPath = core.getInput("tools-path");
+    const eimVersionInput = core.getInput("eim-version");
 
     // Set default paths if not provided
     if (!idfPath) {
-      idfPath = process.platform === "win32" ? "C:\\esp\\idf" : "/tmp/esp/idf";
+      switch (process.platform) {
+        case "darwin":
+          idfPath = "~/esp/idf";
+          break;
+        case "win32":
+          idfPath = "C:\\esp\\idf";
+          break;
+        default:
+          idfPath = "/tmp/esp/idf";
+          break;
+      }
     }
     if (!toolsPath) {
       toolsPath = process.platform === "win32" ? "C:\\esp" : "/tmp/esp";
@@ -30242,8 +30253,7 @@ async function run() {
     // Install platform-specific dependencies
     await installDependencies(process.platform);
 
-    // Get latest EIM version from GitHub
-    const eimVersion = await getLatestEimVersion();
+    const eimVersion = eimVersionInput || (await getLatestEimVersion());
     core.info(`Using EIM version: ${eimVersion}`);
 
     // Get the appropriate EIM download URL
@@ -30382,6 +30392,7 @@ async function run() {
       } else {
         // Create shell script for Unix
         const shContent = `#!/bin/bash\n${fullPath} "$@"`;
+        core.info(`Creating wrapper script for ${cmd} at ${wrapperPath}`);
         await fs.promises.writeFile(wrapperPath, shContent);
         await exec.exec("chmod", ["+x", wrapperPath]);
       }
@@ -30476,11 +30487,11 @@ async function installDependencies(platform) {
       }
       await exec.exec("sudo apt-get update");
       await exec.exec(
-        "sudo apt-get install -y git cmake ninja-build wget flex bison gperf ccache libffi-dev libssl-dev dfu-util libusb-1.0-0 python3 python3-pip python3-setuptools python3-wheel xz-utils unzip python3-venv"
+        "sudo apt-get install -y git cmake ninja-build wget flex bison gperf ccache libgcrypt20 libglib2.0-0 libpixman-1-0 libsdl2-2.0-0 libslirp0 libffi-dev libssl-dev dfu-util libusb-1.0-0 python3 python3-pip python3-setuptools python3-wheel xz-utils unzip python3-venv"        
       );
       break;
     case "darwin":
-      await exec.exec("brew install dfu-util cmake ninja");
+      await exec.exec("brew install dfu-util cmake ninja libgcrypt glib pixman sdl2 libslirp");
       break;
     case "win32":
       // No dependencies needed for Windows

@@ -5,9 +5,33 @@ on:
     branches: [v1]
   pull_request:
     branches: [v1]
+  schedule:
+    - cron: '20 4 * * 2'
 
 jobs:
   test:
+    name: Test on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install ESP-IDF
+        uses: ./
+
+      - name: Verify Installation
+        run: |
+          echo "Verifying ESP-IDF installation..."
+          echo "ESP-IDF Path: $IDF_PATH"
+          echo "ESP-IDF Tools Path: $IDF_TOOLS_PATH"
+          echo "ESP-IDF Python Environment Path: $IDF_PYTHON_ENV_PATH"
+          echo "ESP-IDF Version:"
+          idf.py --version
+
+  fixed-version-test:
     name: Test on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
@@ -19,6 +43,8 @@ jobs:
 
       - name: Install ESP-IDF
         uses: ./
+        with:
+          eim-version: "v0.2.6"
 
       - name: Verify Installation
         run: |
