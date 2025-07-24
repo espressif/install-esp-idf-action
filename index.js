@@ -304,7 +304,7 @@ async function installDependencies(platform) {
       }
       await exec.exec("sudo apt-get update");
       await exec.exec(
-        "sudo apt-get install -y git cmake ninja-build wget flex bison gperf ccache libffi-dev libssl-dev dfu-util libusb-1.0-0 python3 python3-pip python3-setuptools python3-wheel xz-utils unzip python3-venv"
+        "sudo apt-get install -y git cmake ninja-build wget flex bison gperf ccache libffi-dev libssl-dev dfu-util libusb-1.0-0 python3 python3-pip python3-setuptools python3-wheel xz-utils unzip python3-venv libsdl2-dev libslirp-dev"
       );
       break;
     case "darwin":
