@@ -164,7 +164,7 @@ async function run() {
         options
       );
     } else {
-      let spath = process.platform === "darwin" ? "/Users/runner/.espressif/tools/" : "/home/runner/.espressif/tools/";
+      let spath = process.platform === "darwin" ? `${os.homedir()}/.espressif/tools/` : `${os.homedir()}/.espressif/tools/`;
       const files =  await fs.promises.readdir(spath);
       const activationFile = files.find(
         (f) => f.startsWith("activate_") && f.endsWith(".sh")
