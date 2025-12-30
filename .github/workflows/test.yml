@@ -69,7 +69,7 @@ jobs:
 
       - name: Verify Action Failed
         run: |
-          if [ "${{ steps.install.outcome }}" = "failure" ]; then
+          if [ '${{ steps.install.outcome }}' = 'failure' ]; then
             echo "✓ Action correctly failed with invalid version tag"
             exit 0
           else

@@ -30308,7 +30308,7 @@ async function run() {
     // EIM may log errors but still return 0 in some cases
     if (stderr.includes("Failed to checkout reference") || 
         stderr.includes("did not exist") ||
-        stderr.includes("ERROR") && (stderr.includes("reference") || stderr.includes("tag"))) {
+        (stderr.includes("ERROR") && (stderr.includes("reference") || stderr.includes("tag")))) {
       throw new Error(
         `EIM installation failed. The specified version '${version}' may not exist. ` +
         `Please check that the version tag is correct (e.g., 'v5.5.1' instead of '5.5.1'). ` +
