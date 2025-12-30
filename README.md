@@ -42,10 +42,12 @@ steps:
 
 | Input        | Description                   | Default                                          |
 | ------------ | ----------------------------- | ------------------------------------------------ |
-| `version`    | Version of ESP-IDF to install | Latest released version                          |
+| `version`    | Version of ESP-IDF to install (e.g., `v5.5.1`, `v5.0`, `latest`). Must include the `v` prefix for release tags. | Latest released version                          |
 | `path`       | Installation path for ESP-IDF | `/opt/esp/idf` (POSIX) or `C:\esp\idf` (Windows) |
 | `tools-path` | Path for ESP-IDF tools        | `/opt/esp` (POSIX) or `C:\esp` (Windows)         |
 | `eim-version` | Version of EIM to use | Latest released version |
+
+**Note:** When specifying a version, ensure you use the correct tag format from the [ESP-IDF releases page](https://github.com/espressif/esp-idf/releases). Version tags must include the `v` prefix (e.g., `v5.5.1`, not `5.5.1`).
 
 ## Available Commands
 
@@ -111,6 +113,15 @@ jobs:
 - Default installation path: `C:\esp\idf`
 
 ## Common Issues
+
+### Invalid Version Tag
+
+If you encounter an error like `Failed to checkout reference: The reference 'refs/tags/X.X.X' did not exist`, ensure you're using the correct version format:
+
+- ✅ Correct: `version: "v5.5.1"` or `version: "v5.0"`
+- ❌ Incorrect: `version: "5.5.1"` or `version: "5.0"`
+
+All ESP-IDF release tags include the `v` prefix. Check the [ESP-IDF releases page](https://github.com/espressif/esp-idf/releases) for available versions.
 
 ### Windows Environment
 
