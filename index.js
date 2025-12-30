@@ -120,7 +120,34 @@ async function run() {
     core.info("Running EIM installation...");
     core.info(`EIM command: ${eimPath} ${args.join(" ")}`);
 
-    await exec.exec(eimPath, args);
+    // Capture stderr to check for errors
+    let stderr = "";
+    const eimOptions = {
+      listeners: {
+        stderr: (data) => {
+          stderr += data.toString();
+        },
+      },
+    };
+
+    const exitCode = await exec.exec(eimPath, args, eimOptions);
+
+    // Check for critical errors in stderr even if exit code is 0
+    // EIM may log errors but still return 0 in some cases
+    if (stderr.includes("Failed to checkout reference") || 
+        stderr.includes("did not exist") ||
+        stderr.includes("ERROR") && (stderr.includes("reference") || stderr.includes("tag"))) {
+      throw new Error(
+        `EIM installation failed. The specified version '${version}' may not exist. ` +
+        `Please check that the version tag is correct (e.g., 'v5.5.1' instead of '5.5.1'). ` +
+        `Error details: ${stderr.trim()}`
+      );
+    }
+
+    // Check exit code explicitly
+    if (exitCode !== 0) {
+      throw new Error(`EIM installation failed with exit code ${exitCode}`);
+    }
 
     // Find and execute the appropriate activation script
     core.info("Finding environment setup script...");
