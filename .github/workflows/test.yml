@@ -49,3 +49,30 @@ jobs:
       - name: Verify Installation
         run: |
           idf.py --version
+
+  invalid-version-test:
+    name: Test Invalid Version Fails on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install ESP-IDF with Invalid Version (should fail)
+        id: install
+        continue-on-error: true
+        uses: ./
+        with:
+          version: "5.5.1"  # Missing 'v' prefix - should fail
+
+      - name: Verify Action Failed
+        run: |
+          if [ "${{ steps.install.outcome }}" = "failure" ]; then
+            echo "✓ Action correctly failed with invalid version tag"
+            exit 0
+          else
+            echo "✗ Action should have failed but didn't"
+            exit 1
+          fi
